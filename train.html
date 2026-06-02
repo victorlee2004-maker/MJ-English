@@ -676,6 +676,88 @@ let voicePollCount = 0;
 const VOICE_POLL_MAX = 20;     // max 20 polls (8 seconds at 400ms)
 const VOICE_POLL_INTERVAL = 400;
 
+/* ── Update the voice button label ── */
+function updateVoiceBtn() {
+  const btn = document.getElementById('spVoiceBtn');
+  if (!speechVoice) {
+    btn.innerHTML = '🎤 语音';
+    btn.classList.remove('gb-active');
+    return;
+  }
+  const isBritish = speechVoice.lang.startsWith('en-GB');
+  const shortName = speechVoice.name.length > 12 ? speechVoice.name.slice(0,11) + '…' : speechVoice.name;
+  btn.innerHTML = (isBritish ? '🇬🇧 ' : '🎤 ') + shortName;
+  if (isBritish) btn.classList.add('gb-active');
+  else btn.classList.remove('gb-active');
+}
+
+/* ── Render the voice picker popup HTML ── */
+function renderVoicePicker(sorted, britVoices, usVoices, otherVoices) {
+  const popup = document.getElementById('voicePopup');
+  const totalVoices = allVoices.length;
+
+  let html = `<div class="voice-popup-title">
+    <span>选择朗读语音</span>
+    <span class="voice-popup-close" onclick="hideVoicePicker()">✕</span>
+  </div>`;
+
+  // Loading state: voices haven't loaded yet
+  if (totalVoices === 0) {
+    html += `<div style="padding:24px 16px; text-align:center;">
+      <div style="font-size:36px; margin-bottom:12px;">🔊</div>
+      <div style="font-size:14px; color:var(--text); font-weight:700; margin-bottom:6px;">正在加载语音引擎…</div>
+      <div style="font-size:12px; color:var(--text-muted); line-height:1.6; margin-bottom:16px;">
+        正在检测系统语音包，稍后自动加载<br>
+        如长时间无响应，请点击下方按钮重试
+      </div>
+      <button onclick="retryVoiceLoad()" style="padding:10px 28px; border-radius:20px; border:none; background:var(--primary); color:#fff; font-size:14px; font-weight:600; cursor:pointer;">
+        🔄 重新检测
+      </button>
+    </div>`;
+    popup.innerHTML = html;
+    return;
+  }
+
+  const sections = [
+    { title: '🇬🇧 英式英语 · British', voices: britVoices, badge: 'gb' },
+    { title: '🇺🇸 美式英语 · American', voices: usVoices, badge: 'us' },
+    { title: '🌐 其他英语 · Other', voices: otherVoices, badge: 'other' }
+  ];
+
+  sections.forEach(sec => {
+    if (sec.voices.length === 0) return;
+    html += `<div class="voice-popup-section">
+      <div class="voice-popup-section-title">${sec.title}</div>`;
+    sec.voices.forEach(v => {
+      const selected = currentVoiceURI === v.voiceURI;
+      html += `<div class="voice-option${selected ? ' selected' : ''}" onclick="pickVoice('${v.voiceURI.replace(/'/g, "\\'")}')">
+        <div>
+          <div class="voice-option-name">${v.name}</div>
+          <div class="voice-option-lang">${v.lang}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="voice-option-badge ${sec.badge}">${sec.badge === 'gb' ? '英式' : sec.badge === 'us' ? '美式' : '其他'}</span>
+          <span class="voice-check">✓</span>
+        </div>
+      </div>`;
+    });
+    html += `</div>`;
+  });
+
+  // If no British voices, show installation guide
+  if (britVoices.length === 0 && totalVoices > 0) {
+    html += `<div style="padding:12px 16px; margin:4px 16px; background:rgba(255,193,7,0.08); border-radius:10px; border:1px solid rgba(255,193,7,0.15);">
+      <div style="font-size:12px; color:#FFC107; font-weight:700; margin-bottom:4px;">💡 没有英式语音？</div>
+      <div style="font-size:11px; color:var(--text-muted); line-height:1.6;">
+      前往 <b>系统设置 → 语言和输入法 → 文字转语音 → Google TTS → 安装语音数据</b><br>
+      下载 <b>English (United Kingdom)</b> 即可获得自然的英式发音
+      </div>
+    </div>`;
+  }
+
+  popup.innerHTML = html;
+}
+
 /* ── Core: categorize & pick best voice ── */
 function applyVoices(voiceList) {
   allVoices = voiceList;
@@ -925,7 +1007,9 @@ function speakCurrent() {
   utter.rate = speechRate;
   utter.pitch = 1;
   utter.volume = 1;
-  if (speechVoice) utter.voice = speechVoice;
+  // Force English locale so numbers/spellings use English pronunciation (not Chinese)
+  utter.lang = 'en-GB';
+  if (speechVoice) { utter.voice = speechVoice; utter.lang = speechVoice.lang; }
   speechUtterance = utter;
 
   utter.onend = () => {
