@@ -2,7 +2,9 @@
 const App = {
   key: 'english_app_data',
   getData(){ return JSON.parse(localStorage.getItem(this.key) || '{"materials":[]}'); },
-  saveData(d){ localStorage.setItem(this.key, JSON.stringify(d)); }
+  saveData(d){ localStorage.setItem(this.key, JSON.stringify(d)); },
+  getVoice(){ return localStorage.getItem('english_app_voice') || ''; },
+  saveVoice(uri){ localStorage.setItem('english_app_voice', uri); }
 };
 
 // ===== Prompt库 =====
