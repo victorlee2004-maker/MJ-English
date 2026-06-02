@@ -674,7 +674,6 @@ let currentVoiceURI = '';
 
 function loadVoices() {
   allVoices = synth.getVoices().filter(v => v.lang.startsWith('en'));
-  if (allVoices.length === 0) return;
 
   // Categorize: British first, then US, then others
   const britVoices = allVoices.filter(v => v.lang === 'en-GB' || v.lang.startsWith('en-GB-'));
@@ -685,28 +684,39 @@ function loadVoices() {
   const sorted = [...britVoices, ...usVoices, ...otherVoices];
 
   // Restore saved voice or pick the best available
-  const savedURI = App.getVoice();
-  let picked = null;
-  if (savedURI) {
-    picked = sorted.find(v => v.voiceURI === savedURI);
-  }
-  if (!picked) {
-    // Prefer a high-quality British voice
-    picked = britVoices.find(v => v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Premium')) ||
-             britVoices[0] ||
-             usVoices.find(v => v.name.includes('Google') && !v.name.includes('US English')) ||
-             usVoices[0] ||
-             sorted[0];
-  }
-
-  if (picked) {
-    speechVoice = picked;
-    currentVoiceURI = picked.voiceURI;
+  if (allVoices.length > 0) {
+    const savedURI = App.getVoice();
+    let picked = null;
+    if (savedURI) {
+      picked = sorted.find(v => v.voiceURI === savedURI);
+    }
+    if (!picked) {
+      // Prefer a high-quality British voice
+      picked = britVoices.find(v => v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Premium')) ||
+               britVoices[0] ||
+               usVoices.find(v => v.name.includes('Google') && !v.name.includes('US English')) ||
+               usVoices[0] ||
+               sorted[0];
+    }
+    if (picked) {
+      speechVoice = picked;
+      currentVoiceURI = picked.voiceURI;
+    }
   }
 
   updateVoiceBtn();
   renderVoicePicker(sorted, britVoices, usVoices, otherVoices);
 }
+
+// voices load asynchronously on mobile — refresh when ready
+synth.addEventListener('voiceschanged', () => {
+  loadVoices();
+  // If picker is currently open, auto-refresh its content
+  if (document.getElementById('voicePopup').classList.contains('show')) {
+    allVoices = synth.getVoices().filter(v => v.lang.startsWith('en'));
+    renderVoicePickerFromCurrent();
+  }
+});
 
 function updateVoiceBtn() {
   const btn = document.getElementById('spVoiceBtn');
@@ -724,16 +734,35 @@ function updateVoiceBtn() {
 
 function renderVoicePicker(sorted, britVoices, usVoices, otherVoices) {
   const popup = document.getElementById('voicePopup');
-  const sections = [
-    { title: '🇬🇧 英式英语 · British', voices: britVoices, badge: 'gb' },
-    { title: '🇺🇸 美式英语 · American', voices: usVoices, badge: 'us' },
-    { title: '🌐 其他英语 · Other', voices: otherVoices, badge: 'other' }
-  ];
+  const totalVoices = allVoices.length;
 
   let html = `<div class="voice-popup-title">
     <span>选择朗读语音</span>
     <span class="voice-popup-close" onclick="hideVoicePicker()">✕</span>
   </div>`;
+
+  // Empty state: voices haven't loaded yet (common on mobile)
+  if (totalVoices === 0) {
+    html += `<div style="padding:24px 16px; text-align:center;">
+      <div style="font-size:36px; margin-bottom:12px;">🔊</div>
+      <div style="font-size:14px; color:var(--text); font-weight:700; margin-bottom:6px;">正在加载语音引擎…</div>
+      <div style="font-size:12px; color:var(--text-muted); line-height:1.6; margin-bottom:16px;">
+        语音数据正在初始化，稍后自动刷新<br>
+        如长时间无响应，请点击下方按钮重试
+      </div>
+      <button onclick="retryLoadVoices()" style="padding:10px 28px; border-radius:20px; border:none; background:var(--primary); color:#fff; font-size:14px; font-weight:600; cursor:pointer;">
+        🔄 重新加载
+      </button>
+    </div>`;
+    popup.innerHTML = html;
+    return;
+  }
+
+  const sections = [
+    { title: '🇬🇧 英式英语 · British', voices: britVoices, badge: 'gb' },
+    { title: '🇺🇸 美式英语 · American', voices: usVoices, badge: 'us' },
+    { title: '🌐 其他英语 · Other', voices: otherVoices, badge: 'other' }
+  ];
 
   sections.forEach(sec => {
     if (sec.voices.length === 0) return;
@@ -770,13 +799,35 @@ function renderVoicePicker(sorted, britVoices, usVoices, otherVoices) {
 }
 
 function showVoicePicker() {
-  // Refresh voices
+  // Force refresh voices on mobile (async load)
   allVoices = synth.getVoices().filter(v => v.lang.startsWith('en'));
-  if (allVoices.length > 0) renderVoicePickerFromCurrent();
-  loadVoices();  // re-render
+  if (allVoices.length > 0) {
+    renderVoicePickerFromCurrent();
+  } else {
+    // Voices not ready — try speak empty utterance to trigger loading
+    try {
+      const dummy = new SpeechSynthesisUtterance('');
+      dummy.volume = 0;
+      dummy.rate = 10;
+      synth.speak(dummy);
+    } catch(e) {}
+  }
+  // Always call loadVoices to render (will show loading state if empty)
+  loadVoices();
 
   document.getElementById('voiceOverlay').classList.add('show');
   document.getElementById('voicePopup').classList.add('show');
+
+  // Retry after a delay for slow mobile TTS engines
+  if (allVoices.length === 0) {
+    setTimeout(() => {
+      const fresh = synth.getVoices().filter(v => v.lang.startsWith('en'));
+      if (fresh.length > 0 && allVoices.length === 0) {
+        allVoices = fresh;
+        loadVoices();
+      }
+    }, 800);
+  }
 }
 
 function renderVoicePickerFromCurrent() {
@@ -785,6 +836,26 @@ function renderVoicePickerFromCurrent() {
   const other = allVoices.filter(v => !v.lang.startsWith('en-GB') && !v.lang.startsWith('en-US'));
   const sorted = [...brit, ...us, ...other];
   renderVoicePicker(sorted, brit, us, other);
+}
+
+function retryLoadVoices() {
+  allVoices = synth.getVoices().filter(v => v.lang.startsWith('en'));
+  if (allVoices.length === 0) {
+    // Force trigger TTS engine
+    try {
+      const dummy = new SpeechSynthesisUtterance('test');
+      dummy.volume = 0;
+      dummy.rate = 10;
+      synth.speak(dummy);
+    } catch(e) {}
+    // Retry after engine init
+    setTimeout(() => {
+      allVoices = synth.getVoices().filter(v => v.lang.startsWith('en'));
+      loadVoices();
+    }, 600);
+  } else {
+    loadVoices();
+  }
 }
 
 function hideVoicePicker() {
