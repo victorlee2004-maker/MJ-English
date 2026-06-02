@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#534AB7">
+<title>技巧 — 十篇攻克英语</title>
+<link rel="manifest" href="manifest.json">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{--purple:#534AB7;--purple-light:#EEEDFE;--text:#1a1a1a;--text2:#666;--text3:#999;--bg:#f5f5f7;--card:#fff;--radius:14px;--radius-sm:10px;}
+body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Helvetica Neue',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:80px}
+.header{background:#fff;padding:16px 20px;border-bottom:0.5px solid rgba(0,0,0,0.08)}
+.header-title{font-size:20px;font-weight:600;color:var(--purple)}
+.header-sub{font-size:13px;color:var(--text3);margin-top:2px}
+.section{padding:16px 16px 0}
+.section-title{font-size:15px;font-weight:600;margin-bottom:12px}
+.tip-card{background:#fff;border-radius:var(--radius);padding:16px;margin:0 16px 10px}
+.tip-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.tip-icon{font-size:24px}
+.tip-title{font-size:15px;font-weight:600}
+.tip-badge{font-size:11px;padding:2px 8px;border-radius:8px}
+.tip-body{font-size:13px;color:var(--text2);line-height:1.8}
+.qa-item{background:#fff;border-radius:var(--radius-sm);padding:14px 16px;margin:0 16px 8px;cursor:pointer}
+.qa-q{font-size:14px;font-weight:500;display:flex;justify-content:space-between;align-items:center}
+.qa-a{font-size:13px;color:var(--text2);line-height:1.7;margin-top:10px;display:none}
+.qa-a.open{display:block}
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:0.5px solid rgba(0,0,0,0.1);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom)}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;padding:10px 0;cursor:pointer;color:var(--text3);text-decoration:none}
+.nav-item.active{color:var(--purple)}
+.nav-icon{font-size:22px;line-height:1}
+.nav-label{font-size:10px;margin-top:2px}
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="header-title">训练技巧</div>
+  <div class="header-sub">用好这套系统的方法</div>
+</div>
+
+<div class="section" style="padding-top:16px"><div class="section-title">核心原则</div></div>
+
+<div class="tip-card">
+  <div class="tip-header"><div class="tip-icon">🎯</div><div><div class="tip-title">只求透，不求多</div></div></div>
+  <div class="tip-body">10篇精选材料，逐篇深度攻克，把每篇的价值榨干，形成真正的英语语感。不要追求完成100篇，把这10篇吃透胜过泛读1000篇。</div>
+</div>
+
+<div class="tip-card">
+  <div class="tip-header"><div class="tip-icon">🚫</div><div><div class="tip-title">盲听时绝对不看原文</div></div></div>
+  <div class="tip-body">听不懂很正常，焦虑也正常。真正的听力能力恰恰是在「听不懂→努力猜→对照原文」这个过程中训练出来的。跳过这个痛苦的过程，听力永远不会真正提升。</div>
+</div>
+
+<div class="tip-card">
+  <div class="tip-header"><div class="tip-icon">⏱️</div><div><div class="tip-title">背诵必须达到原速</div></div></div>
+  <div class="tip-body">很多人口语差的原因：背得太慢、节奏完全不像母语者。背诵时对标原声，检查停顿位置、重音位置、句子节奏。准确率95%、流畅率90%才算通过，不要降低标准。</div>
+</div>
+
+<div class="tip-card">
+  <div class="tip-header"><div class="tip-icon">📝</div><div><div class="tip-title">输出优先于讲解</div></div></div>
+  <div class="tip-body">学英语不是「听老师讲」能学会的，是自己练会的。每个环节都是：你先输出→AI给反馈，而不是AI讲解→你被动听。输出时尽量用原文的词汇和句型，而不是用中文思维翻译。</div>
+</div>
+
+<div class="section"><div class="section-title">材料选择指南</div></div>
+
+<div class="tip-card">
+  <div class="tip-body">
+    <p style="margin-bottom:8px"><strong>推荐来源：</strong></p>
+    <p>• TED演讲 — 话题多样，语速适中，有字幕对照</p>
+    <p>• BBC纪录片片段 — 地道英式表达，词汇丰富</p>
+    <p>• 英美剧独白片段 — 口语化表达，实用性强</p>
+    <p style="margin-top:10px"><strong>难度建议：</strong>生词量15-20%为宜。太难会在盲听环节卡住，太简单没有训练效果。</p>
+    <p style="margin-top:10px"><strong>长度建议：</strong>每篇200-400字，太长会影响背诵质量。</p>
+  </div>
+</div>
+
+<div class="section"><div class="section-title">常见问题</div></div>
+
+<div class="qa-item" onclick="toggleQA(this)">
+  <div class="qa-q"><span>零基础可以用这套系统吗？</span><span>+</span></div>
+  <div class="qa-a">可以，但建议先具备基础音标和最常用1000词汇。这套系统训练的是「能力」不是「知识」。基础太差会在盲听环节长期卡住，挫败感过强容易放弃。</div>
+</div>
+
+<div class="qa-item" onclick="toggleQA(this)">
+  <div class="qa-q"><span>每天应该投入多少时间？</span><span>+</span></div>
+  <div class="qa-a">每篇材料建议分3-5天完成：第1-2天做听力和词汇，第3-4天做背诵，第5天做输出。每天45-60分钟的专注训练效果远好于每天碎片化学习3小时。</div>
+</div>
+
+<div class="qa-item" onclick="toggleQA(this)">
+  <div class="qa-q"><span>如何配合AI工具使用？</span><span>+</span></div>
+  <div class="qa-a">在训练页面点击「复制Prompt」，粘贴到你使用的AI工具（如ChatGPT、豆包、Claude等），然后把材料原文也发给AI。AI会扮演对应的训练官引导你完成训练。训练完成后在App里记录得分。</div>
+</div>
+
+<div class="qa-item" onclick="toggleQA(this)">
+  <div class="qa-q"><span>10篇完成后怎么办？</span><span>+</span></div>
+  <div class="qa-a">10篇完成代表你已经建立了完整的英语训练方法论和语感基础。可以开始第二轮：选更难的材料重复这套流程。每轮10篇，能力会持续跃迁。</div>
+</div>
+
+<nav class="bottom-nav">
+  <a class="nav-item" href="index.html"><div class="nav-icon">📚</div><div class="nav-label">材料</div></a>
+  <a class="nav-item" href="progress.html"><div class="nav-icon">📊</div><div class="nav-label">进度</div></a>
+  <a class="nav-item active" href="tips.html"><div class="nav-icon">💡</div><div class="nav-label">技巧</div></a>
+</nav>
+
+<script>
+function toggleQA(el){
+  const a = el.querySelector('.qa-a');
+  const icon = el.querySelector('.qa-q span:last-child');
+  a.classList.toggle('open');
+  icon.textContent = a.classList.contains('open') ? '−' : '+';
+}
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js')
+    .then(r => console.log('SW registered'))
+    .catch(e => console.log('SW error', e));
+}
+</script>
+</body>
+</html>
