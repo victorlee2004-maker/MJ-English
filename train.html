@@ -304,8 +304,6 @@
     <button class="sp-speed" data-rate="0.75" onclick="setSpeed(0.75,this)">0.75x</button>
     <button class="sp-speed" data-rate="1.25" onclick="setSpeed(1.25,this)">1.25x</button>
     <button class="sp-voice-btn" id="spVoiceBtn" onclick="showVoicePicker()" title="选择语音">🎤 语音</button>
-    <div class="voice-picker-overlay" id="voiceOverlay" onclick="hideVoicePicker()"></div>
-    <div class="voice-picker-popup" id="voicePopup"></div>
     <button class="sp-blind" id="spBlind" onclick="toggleBlind()">🙈 盲听</button>
   </div>
   <div class="text-size-bar">
@@ -1014,5 +1012,8 @@ if ('serviceWorker' in navigator) {
     .catch(e => console.log('SW error', e));
 }
 </script>
+<!-- Voice picker: must be at body level for mobile fixed-positioning -->
+<div class="voice-picker-overlay" id="voiceOverlay" onclick="hideVoicePicker()"></div>
+<div class="voice-picker-popup" id="voicePopup"></div>
 </body>
 </html>
