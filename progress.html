@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#534AB7">
+<link rel="manifest" href="manifest.json">
+<title>进度 | 十篇攻克法</title>
+<style>
+  :root {
+    --primary:#534AB7; --primary-light:#7B74D4;
+    --bg:#0F0F1A; --surface:#1A1A2E; --surface2:#22223B;
+    --text:#F0EFFF; --text-muted:#9997BB;
+    --gold:#FFD700; --success:#4CAF50; --radius:14px;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { background:var(--bg); color:var(--text); font-family:'PingFang SC','Microsoft YaHei',sans-serif; min-height:100%; }
+
+  .header { background:linear-gradient(135deg,#1A1A2E,#16213E); padding:50px 20px 20px; }
+  .header h1 { font-size:20px; font-weight:800; }
+  .header p { font-size:12px; color:var(--text-muted); margin-top:4px; }
+
+  .section { padding:16px; }
+  .section-title { font-size:12px; font-weight:700; color:var(--text-muted); letter-spacing:1px; text-transform:uppercase; margin-bottom:12px; }
+
+  /* ── Radar Chart Canvas ── */
+  .radar-wrap { background:var(--surface); border-radius:var(--radius); padding:16px; margin-bottom:14px; display:flex; flex-direction:column; align-items:center; }
+  .radar-title { font-size:13px; font-weight:700; margin-bottom:12px; align-self:flex-start; }
+  canvas { max-width:280px; width:100%; }
+
+  /* ── Stats Grid ── */
+  .stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
+  .stat-card { background:var(--surface); border-radius:var(--radius); padding:14px; }
+  .stat-num { font-size:28px; font-weight:800; color:var(--primary-light); }
+  .stat-label { font-size:11px; color:var(--text-muted); margin-top:2px; }
+  .stat-sub { font-size:10px; color:var(--text-muted); margin-top:4px; }
+
+  /* ── Materials Progress Table ── */
+  .mat-table { background:var(--surface); border-radius:var(--radius); overflow:hidden; margin-bottom:14px; }
+  .mat-table-header { display:grid; grid-template-columns:36px 1fr 44px 44px 44px 44px; gap:4px; padding:10px 12px; background:var(--surface2); font-size:10px; color:var(--text-muted); font-weight:700; text-transform:uppercase; }
+  .mat-table-row { display:grid; grid-template-columns:36px 1fr 44px 44px 44px 44px; gap:4px; padding:10px 12px; border-top:1px solid rgba(255,255,255,0.04); align-items:center; cursor:pointer; transition:background .2s; }
+  .mat-table-row:active { background:rgba(255,255,255,0.04); }
+  .row-num { font-size:13px; font-weight:700; color:var(--text-muted); }
+  .row-title { font-size:12px; }
+  .row-level { font-size:9px; font-weight:700; margin-top:2px; }
+  .row-score { font-size:13px; font-weight:700; text-align:center; }
+  .row-score.na { color:rgba(255,255,255,0.15); font-size:16px; }
+  .row-score.pass { color:var(--success); }
+  .row-score.fail { color:#FF5252; }
+
+  /* ── Difficulty Progression Table ── */
+  .diff-table { background:var(--surface); border-radius:var(--radius); overflow:hidden; margin-bottom:14px; }
+  .diff-row { display:grid; grid-template-columns:50px 1fr 80px 60px; gap:8px; padding:10px 14px; border-top:1px solid rgba(255,255,255,0.04); align-items:center; }
+  .diff-row:first-child { border-top:none; background:var(--surface2); font-size:10px; font-weight:700; color:var(--text-muted); text-transform:uppercase; }
+  .diff-stars { font-size:11px; letter-spacing:-1px; }
+
+  /* ── Word Count Chart ── */
+  .word-chart { background:var(--surface); border-radius:var(--radius); padding:14px; margin-bottom:14px; }
+  .word-bar-row { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+  .word-bar-label { font-size:11px; color:var(--text-muted); width:28px; text-align:right; flex-shrink:0; }
+  .word-bar-track { flex:1; height:12px; background:rgba(255,255,255,0.06); border-radius:6px; overflow:hidden; }
+  .word-bar-fill { height:100%; border-radius:6px; background:linear-gradient(90deg,var(--primary-light),#9C27B0); transition:width .8s ease; }
+  .word-bar-num { font-size:10px; color:var(--text-muted); width:28px; text-align:left; flex-shrink:0; }
+
+  /* ── Milestones ── */
+  .milestones-row { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px; }
+  .milestone-card { flex:1; min-width:140px; background:var(--surface); border-radius:12px; padding:12px; display:flex; align-items:center; gap:10px; border:1px solid transparent; }
+  .milestone-card.reached { border-color:rgba(255,215,0,0.3); background:rgba(255,215,0,0.05); }
+  .ms-icon { font-size:24px; }
+  .ms-text h4 { font-size:12px; font-weight:700; }
+  .ms-text p { font-size:11px; color:var(--text-muted); margin-top:2px; }
+
+  .bottom-nav { position:fixed; bottom:0; left:0; right:0; background:rgba(26,26,46,0.95); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); border-top:1px solid rgba(255,255,255,0.08); display:flex; padding-bottom:env(safe-area-inset-bottom,8px); z-index:100; }
+  .nav-item { flex:1; display:flex; flex-direction:column; align-items:center; padding:10px 0 4px; gap:3px; cursor:pointer; text-decoration:none; }
+  .nav-icon { font-size:22px; }
+  .nav-label { font-size:10px; color:var(--text-muted); }
+  .nav-item.active .nav-label { color:var(--primary-light); }
+  .page-bottom-pad { height:80px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📊 学习进度</h1>
+  <p>10篇材料 · 能力成长全景图</p>
+</div>
+
+<div class="section">
+  <div class="section-title">综合统计</div>
+  <div class="stats-grid" id="statsGrid"></div>
+
+  <div class="section-title">四维能力雷达</div>
+  <div class="radar-wrap">
+    <div class="radar-title">听力 · 词汇 · 背诵 · 输出</div>
+    <canvas id="radarCanvas" width="280" height="280"></canvas>
+  </div>
+
+  <div class="section-title">训练里程碑</div>
+  <div class="milestones-row" id="milestonesRow"></div>
+
+  <div class="section-title">各篇训练得分</div>
+  <div class="mat-table">
+    <div class="mat-table-header">
+      <div>#</div><div>材料</div><div>🎧听</div><div>📖词</div><div>🗣️背</div><div>✍️输</div>
+    </div>
+    <div id="matTableBody"></div>
+  </div>
+
+  <div class="section-title">语法难度渐进线</div>
+  <div class="diff-table" id="diffTable"></div>
+
+  <div class="section-title">单词量递增趋势</div>
+  <div class="word-chart" id="wordChart"></div>
+</div>
+
+<div class="page-bottom-pad"></div>
+
+<nav class="bottom-nav">
+  <a class="nav-item" href="index.html"><span class="nav-icon">🏠</span><span class="nav-label">主页</span></a>
+  <a class="nav-item" href="train.html"><span class="nav-icon">🎯</span><span class="nav-label">训练</span></a>
+  <a class="nav-item active" href="progress.html"><span class="nav-icon">📊</span><span class="nav-label">进度</span></a>
+  <a class="nav-item" href="tips.html"><span class="nav-icon">💡</span><span class="nav-label">技巧</span></a>
+</nav>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+<script>
+const STAGE_KEYS = ['listening','vocab','recite','output'];
+const STAGE_LABELS = ['🎧听力','📖词汇','🗣️背诵','✍️输出'];
+const DIFFICULTY_LABELS = ['A1·基础','A1·日常','A1-A2·过渡','A2·进阶','A2-B1·提升','B1·中级','B1-B2·冲刺','B2·高级','B2-C1·准高级','C1·精英'];
+const TOPIC_LABELS = ['个人生活','日常生活','人际关系','未来计划','社会议题','科技进步','励志故事','科技前沿','管理技能','人文思考'];
+const GRAMMAR_KEY = [
+  'Be动词+一般现在时+基本句型',
+  '频率副词+时间介词+条件状语从句',
+  '比较级+规则/不规则过去式',
+  'will将来时+be going to+不定式',
+  '被动语态+情态动词+过渡词',
+  '现在完成时+对比结构+形式主语',
+  '过去完成时+让步状语+平行结构',
+  '定语从句+被动综合+分词状语',
+  '名词从句+倒装强调+排比结构',
+  '倒装句首+虚拟语气+独立主格'
+];
+
+function init() {
+  const data = App.getData();
+  const mats = data.materials || [];
+
+  const merged = MATERIALS_DB.map(p => {
+    const s = mats.find(m => m.id === p.id) || {};
+    return { ...p, stages: s.stages || {} };
+  });
+
+  const completedCount = merged.filter(m => STAGE_KEYS.every(s => (m.stages[s]||0) >= 60)).length;
+  const studyDays = data.studyDays || 0;
+  const streak = data.streak || 0;
+
+  // Avg per stage
+  const stageAvg = {};
+  STAGE_KEYS.forEach(sk => {
+    const scores = merged.map(m => m.stages[sk]||0).filter(x=>x>0);
+    stageAvg[sk] = scores.length ? Math.round(scores.reduce((a,b)=>a+b,0)/scores.length) : 0;
+  });
+  const overallAvg = STAGE_KEYS.reduce((a,sk) => a + stageAvg[sk], 0) / 4;
+
+  // Stats grid
+  document.getElementById('statsGrid').innerHTML = [
+    { num: completedCount + '/10', label: '已完成篇数', sub: '顺序解锁，逐篇攻克' },
+    { num: overallAvg > 0 ? Math.round(overallAvg) : '—', label: '综合均分', sub: '四维能力平均' },
+    { num: studyDays, label: '累计学习天数', sub: '持续积累中' },
+    { num: streak + '天', label: '连续打卡', sub: streak > 0 ? '🔥 保持势头！' : '开始打卡吧' }
+  ].map(s => `<div class="stat-card"><div class="stat-num">${s.num}</div><div class="stat-label">${s.label}</div><div class="stat-sub">${s.sub}</div></div>`).join('');
+
+  // Radar
+  drawRadar(STAGE_KEYS.map(sk => stageAvg[sk]));
+
+  // Milestones
+  const milestones = [
+    { n:1, icon:'🌱', title:'第1篇完成', desc:'万里长征第一步' },
+    { n:3, icon:'📚', title:'第3篇完成', desc:'过去时+将来时掌握' },
+    { n:5, icon:'⚡', title:'第5篇完成', desc:'B1级别正式解锁' },
+    { n:10, icon:'🏆', title:'全部10篇完成！', desc:'英语能力跃迁达成' }
+  ];
+  document.getElementById('milestonesRow').innerHTML = milestones.map(m => {
+    const reached = completedCount >= m.n;
+    return `<div class="milestone-card ${reached?'reached':''}">
+      <div class="ms-icon">${m.icon}</div>
+      <div class="ms-text"><h4>${m.title}</h4><p>${m.desc}</p></div>
+    </div>`;
+  }).join('');
+
+  // Materials table
+  document.getElementById('matTableBody').innerHTML = merged.map((m, i) => {
+    const scores = STAGE_KEYS.map(sk => m.stages[sk]||0);
+    return `<div class="mat-table-row" onclick="window.location='train.html?id=${m.id}'">
+      <div class="row-num">${m.id}</div>
+      <div>
+        <div class="row-title">${m.title}</div>
+        <div class="row-level" style="color:${m.levelColor}">${m.level}</div>
+      </div>
+      ${scores.map(sc => `<div class="row-score ${sc===0?'na':sc>=60?'pass':'fail'}">${sc===0?'·':sc}</div>`).join('')}
+    </div>`;
+  }).join('');
+
+  // Difficulty table
+  const diffRows = MATERIALS_DB.map((m, i) => {
+    const stars = '★'.repeat(m.difficulty) + '☆'.repeat(5 - Math.min(m.difficulty, 5));
+    return `<div class="diff-row">
+      <div style="font-size:12px;color:${m.levelColor};font-weight:700">${m.level}</div>
+      <div style="font-size:12px">${GRAMMAR_KEY[i]}</div>
+      <div class="diff-stars" style="color:${m.levelColor}">${stars}</div>
+      <div style="font-size:11px;color:var(--text-muted)">${m.wordCount}词</div>
+    </div>`;
+  }).join('');
+  document.getElementById('diffTable').innerHTML = `
+    <div class="diff-row"><div>级别</div><div>核心语法</div><div>难度</div><div>词量</div></div>
+    ${diffRows}`;
+
+  // Word chart
+  const maxWords = Math.max(...MATERIALS_DB.map(m => m.wordCount));
+  document.getElementById('wordChart').innerHTML = MATERIALS_DB.map(m => {
+    const pct = m.wordCount / maxWords * 100;
+    const done = STAGE_KEYS.every(sk => (merged[m.id-1].stages[sk]||0) >= 60);
+    return `<div class="word-bar-row">
+      <div class="word-bar-label" style="color:${m.levelColor}">P${m.id}</div>
+      <div class="word-bar-track"><div class="word-bar-fill" style="width:${done?pct:pct*0.3}%;background:${done?`linear-gradient(90deg,${m.levelColor},${m.levelColor}88)`:'rgba(255,255,255,0.1)'}"></div></div>
+      <div class="word-bar-num">${m.wordCount}</div>
+    </div>`;
+  }).join('');
+}
+
+function drawRadar(vals) {
+  const canvas = document.getElementById('radarCanvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const cx = W/2, cy = H/2, R = Math.min(W,H)/2 - 30;
+  const labels = ['🎧 听力','📖 词汇','🗣️ 背诵','✍️ 输出'];
+  const n = 4;
+
+  ctx.clearRect(0,0,W,H);
+
+  // Grid
+  for (let r=1; r<=5; r++) {
+    ctx.beginPath();
+    for (let i=0; i<n; i++) {
+      const a = (i*2*Math.PI/n) - Math.PI/2;
+      const x = cx + (R*r/5)*Math.cos(a);
+      const y = cy + (R*r/5)*Math.sin(a);
+      i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+    }
+    ctx.closePath();
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+
+  // Axes
+  for (let i=0; i<n; i++) {
+    const a = (i*2*Math.PI/n) - Math.PI/2;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + R*Math.cos(a), cy + R*Math.sin(a));
+    ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+    ctx.stroke();
+  }
+
+  // Data
+  ctx.beginPath();
+  vals.forEach((v, i) => {
+    const a = (i*2*Math.PI/n) - Math.PI/2;
+    const r = (v/100)*R;
+    const x = cx + r*Math.cos(a), y = cy + r*Math.sin(a);
+    i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+  });
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(83,74,183,0.3)';
+  ctx.fill();
+  ctx.strokeStyle = '#7B74D4';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Dots
+  vals.forEach((v, i) => {
+    const a = (i*2*Math.PI/n) - Math.PI/2;
+    const r = (v/100)*R;
+    ctx.beginPath();
+    ctx.arc(cx+r*Math.cos(a), cy+r*Math.sin(a), 4, 0, Math.PI*2);
+    ctx.fillStyle = '#7B74D4';
+    ctx.fill();
+  });
+
+  // Labels
+  ctx.font = '11px PingFang SC, sans-serif';
+  ctx.fillStyle = '#9997BB';
+  ctx.textAlign = 'center';
+  labels.forEach((lbl, i) => {
+    const a = (i*2*Math.PI/n) - Math.PI/2;
+    const lR = R + 20;
+    const x = cx + lR*Math.cos(a), y = cy + lR*Math.sin(a);
+    ctx.fillText(lbl, x, y + (a > 0 && a < Math.PI ? 4 : -4));
+  });
+
+  // Value labels
+  ctx.font = 'bold 11px PingFang SC, sans-serif';
+  ctx.fillStyle = '#F0EFFF';
+  vals.forEach((v, i) => {
+    if (v === 0) return;
+    const a = (i*2*Math.PI/n) - Math.PI/2;
+    const r = (v/100)*R;
+    ctx.fillText(v, cx+r*Math.cos(a), cy+r*Math.sin(a)-8);
+  });
+}
+
+init();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js')
+    .then(r => console.log('SW registered'))
+    .catch(e => console.log('SW error', e));
+}
+</script>
+</body>
+</html>
