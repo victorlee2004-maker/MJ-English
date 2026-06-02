@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#534AB7">
+<link rel="manifest" href="manifest.json">
+<title>训练 | 十篇攻克法</title>
+<style>
+  :root {
+    --primary: #534AB7;
+    --primary-light: #7B74D4;
+    --bg: #0F0F1A;
+    --surface: #1A1A2E;
+    --surface2: #22223B;
+    --text: #F0EFFF;
+    --text-muted: #9997BB;
+    --radius: 14px;
+    --gold: #FFD700;
+    --success: #4CAF50;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { background:var(--bg); color:var(--text); font-family:'PingFang SC','Microsoft YaHei',sans-serif; height:100%; overflow-x:hidden; }
+
+  /* ── Top Bar ── */
+  .topbar {
+    position:sticky; top:0; z-index:100;
+    background:rgba(15,15,26,0.95);
+    backdrop-filter:blur(12px);
+    -webkit-backdrop-filter:blur(12px);
+    border-bottom:1px solid rgba(255,255,255,0.08);
+    padding: 48px 16px 12px;
+    display:flex; align-items:center; gap:12px;
+  }
+  .back-btn { font-size:22px; cursor:pointer; padding:4px; }
+  .topbar-info { flex:1; }
+  .topbar-title { font-size:16px; font-weight:700; }
+  .topbar-sub { font-size:11px; color:var(--text-muted); margin-top:2px; }
+  .topbar-level { font-size:12px; font-weight:700; padding:3px 10px; border-radius:20px; }
+
+  /* ── Stage Pipeline ── */
+  .stage-pipeline {
+    display:flex; align-items:center; gap:0;
+    padding: 12px 16px;
+    background: var(--surface);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    overflow-x:auto; scrollbar-width:none;
+  }
+  .stage-pipeline::-webkit-scrollbar { display:none; }
+  .stage-step { display:flex; flex-direction:column; align-items:center; gap:4px; min-width:60px; cursor:pointer; }
+  .stage-dot { width:34px; height:34px; border-radius:50%; border:2px solid rgba(255,255,255,0.15); display:flex; align-items:center; justify-content:center; font-size:15px; transition:all .3s; }
+  .stage-dot.done { background:var(--success); border-color:var(--success); }
+  .stage-dot.active { background:var(--primary); border-color:var(--primary); box-shadow:0 0 12px rgba(83,74,183,0.6); }
+  .stage-dot.locked { opacity:0.4; cursor:not-allowed; }
+  .stage-name { font-size:10px; color:var(--text-muted); white-space:nowrap; }
+  .stage-name.active { color:var(--primary-light); font-weight:700; }
+  .stage-name.done { color:var(--success); }
+  .stage-arrow { font-size:14px; color:rgba(255,255,255,0.15); padding:0 4px; flex-shrink:0; align-self:flex-start; margin-top:10px; }
+
+  /* ── Content Tabs ── */
+  .tab-bar {
+    display:flex; padding:0 16px; gap:8px; margin:12px 0 0;
+    overflow-x:auto; scrollbar-width:none;
+  }
+  .tab-bar::-webkit-scrollbar { display:none; }
+  .tab-btn { padding:7px 16px; border-radius:20px; border:1.5px solid rgba(255,255,255,0.12); background:transparent; color:var(--text-muted); font-size:13px; cursor:pointer; white-space:nowrap; transition:all .2s; }
+  .tab-btn.active { background:var(--primary); border-color:var(--primary); color:#fff; font-weight:700; }
+
+  /* ── Article Panel ── */
+  .panel { display:none; padding:16px; }
+  .panel.show { display:block; }
+
+  .article-text {
+    background:var(--surface);
+    border-radius:var(--radius);
+    padding:18px;
+    font-size:15px;
+    line-height:1.9;
+    color:#E8E6FF;
+    letter-spacing:0.3px;
+    white-space:pre-wrap;
+    word-break:break-word;
+    margin-bottom:12px;
+    position:relative;
+  }
+  .article-actions { display:flex; gap:8px; margin-bottom:12px; }
+  .art-btn { flex:1; padding:10px; border-radius:10px; border:none; background:var(--surface2); color:var(--text); font-size:13px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; transition:all .2s; }
+  .art-btn:active { transform:scale(0.97); }
+  .art-btn.primary { background:var(--primary); }
+
+  /* ── Knowledge Accordion ── */
+  .accordion { margin-bottom:10px; background:var(--surface); border-radius:var(--radius); overflow:hidden; }
+  .accordion-header { display:flex; justify-content:space-between; align-items:center; padding:13px 16px; cursor:pointer; }
+  .accordion-title { font-size:13px; font-weight:700; display:flex; align-items:center; gap:8px; }
+  .accordion-arrow { font-size:12px; color:var(--text-muted); transition:transform .3s; }
+  .accordion-body { display:none; padding:0 16px 14px; }
+  .accordion.open .accordion-arrow { transform:rotate(180deg); }
+  .accordion.open .accordion-body { display:block; }
+  .knowledge-list { list-style:none; }
+  .knowledge-list li { font-size:12px; color:var(--text-muted); padding:5px 0; border-bottom:1px solid rgba(255,255,255,0.04); line-height:1.6; }
+  .knowledge-list li::before { content:'•'; color:var(--primary-light); margin-right:6px; }
+  .vocab-list { display:flex; flex-direction:column; gap:2px; }
+  .vocab-item { background:var(--surface2); border-radius:10px; cursor:pointer; overflow:hidden; transition:all .2s; }
+  .vocab-item:active { background:rgba(83,74,183,0.15); }
+  .vocab-item-inner { display:flex; align-items:center; justify-content:space-between; padding:12px 14px; }
+  .vocab-word { font-size:14px; font-weight:600; color:var(--text); }
+  .vocab-pos { font-size:11px; color:var(--primary-light); background:rgba(83,74,183,0.15); padding:2px 7px; border-radius:4px; margin-left:8px; font-weight:500; white-space:nowrap; }
+  .vocab-phonetic { font-size:11px; color:var(--text-muted); margin-left:8px; }
+  .vocab-arrow { font-size:10px; color:var(--text-muted); transition:transform .25s; }
+  .vocab-item.open .vocab-arrow { transform:rotate(180deg); }
+  .vocab-meaning { max-height:0; overflow:hidden; transition:max-height .3s ease, padding .3s ease; padding:0 14px; font-size:13px; color:var(--primary-light); line-height:1.6; }
+  .vocab-item.open .vocab-meaning { max-height:200px; padding:0 14px 12px; }
+
+  /* ── Training Stage Panel ── */
+  .stage-panel { }
+  .stage-hero {
+    background:linear-gradient(135deg, var(--surface), var(--surface2));
+    border-radius:var(--radius);
+    padding:16px;
+    margin-bottom:12px;
+    border: 1px solid rgba(83,74,183,0.2);
+  }
+  .stage-hero-title { font-size:18px; font-weight:800; margin-bottom:4px; }
+  .stage-hero-sub { font-size:12px; color:var(--text-muted); margin-bottom:12px; }
+  .stage-rules { list-style:none; }
+  .stage-rules li { display:flex; align-items:flex-start; gap:8px; font-size:13px; color:var(--text-muted); padding:5px 0; line-height:1.5; }
+  .rule-icon { font-size:14px; flex-shrink:0; }
+
+  .prompt-card {
+    background:rgba(83,74,183,0.1);
+    border:1.5px solid rgba(83,74,183,0.3);
+    border-radius:var(--radius);
+    margin-bottom:12px;
+    overflow:hidden;
+  }
+  .prompt-header { display:flex; justify-content:space-between; align-items:center; padding:10px 14px; background:rgba(83,74,183,0.15); }
+  .prompt-header-title { font-size:12px; font-weight:700; color:var(--primary-light); display:flex; align-items:center; gap:6px; }
+  .copy-btn { font-size:11px; padding:4px 12px; border-radius:20px; border:1px solid var(--primary-light); background:transparent; color:var(--primary-light); cursor:pointer; transition:all .2s; }
+  .copy-btn:active, .copy-btn.copied { background:var(--primary-light); color:#fff; }
+  .prompt-body { padding:12px 14px; font-size:11.5px; color:var(--text-muted); line-height:1.8; font-family:'Courier New',monospace; white-space:pre-wrap; max-height:280px; overflow-y:auto; }
+
+  .score-form { background:var(--surface); border-radius:var(--radius); padding:16px; margin-bottom:12px; }
+  .score-form h4 { font-size:13px; font-weight:700; margin-bottom:12px; }
+  .score-row { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .score-label { font-size:12px; color:var(--text-muted); width:80px; flex-shrink:0; }
+  .score-slider { flex:1; height:4px; accent-color:var(--primary); }
+  .score-val { font-size:12px; font-weight:700; color:var(--primary-light); width:32px; text-align:right; }
+  .score-submit-btn { width:100%; padding:13px; border-radius:12px; border:none; background:linear-gradient(135deg, var(--primary), var(--primary-dark, #3D3589)); color:#fff; font-size:15px; font-weight:700; cursor:pointer; margin-top:4px; }
+  .score-submit-btn:disabled { opacity:0.5; cursor:not-allowed; }
+
+  .pass-badge { background:linear-gradient(135deg,#1B5E20,#2E7D32); border-radius:12px; padding:14px; text-align:center; margin-bottom:12px; }
+  .pass-badge .pass-icon { font-size:32px; margin-bottom:4px; }
+  .pass-badge h3 { font-size:16px; font-weight:800; }
+  .pass-badge p { font-size:12px; color:#A5D6A7; margin-top:4px; }
+  .next-btn { width:100%; padding:14px; border-radius:12px; border:none; background:linear-gradient(135deg,#534AB7,#9C27B0); color:#fff; font-size:15px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; }
+  .next-btn:disabled { opacity:0.5; cursor:not-allowed; }
+
+  .all-done-banner {
+    background:linear-gradient(135deg,rgba(255,215,0,0.15),rgba(255,165,0,0.1));
+    border:1.5px solid rgba(255,215,0,0.3);
+    border-radius:var(--radius);
+    padding:20px;
+    text-align:center;
+    margin-bottom:12px;
+  }
+  .all-done-banner .done-icon { font-size:40px; margin-bottom:8px; }
+  .all-done-banner h2 { font-size:18px; font-weight:800; color:var(--gold); }
+  .all-done-banner p { font-size:12px; color:var(--text-muted); margin-top:6px; line-height:1.6; }
+
+  .page-bottom-pad { height:20px; }
+
+  /* ── Score Result Box ── */
+  .score-result { background:var(--surface2); border-radius:12px; padding:12px; margin-bottom:12px; }
+  .score-result-row { display:flex; justify-content:space-between; font-size:13px; margin-bottom:6px; }
+  .score-result-val { font-weight:700; color:var(--primary-light); }
+  .score-result-val.pass { color:var(--success); }
+  .score-result-val.fail { color:#FF5252; }
+
+  /* ── Text size control ── */
+  .text-size-bar { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+  .ts-btn { width:30px; height:30px; border-radius:50%; border:1px solid rgba(255,255,255,0.15); background:var(--surface2); color:var(--text); font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .ts-label { font-size:12px; color:var(--text-muted); flex:1; text-align:center; }
+
+  /* ── Speech Controls ── */
+  .speech-bar {
+    display:flex; align-items:center; gap:6px; margin-bottom:10px;
+    background:var(--surface); border-radius:var(--radius); padding:6px 10px;
+    flex-wrap:wrap;
+  }
+  .sp-btn { width:34px; height:34px; border-radius:50%; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:16px; transition:all .2s; flex-shrink:0; }
+  .sp-btn.play { background:var(--primary); color:#fff; }
+  .sp-btn.pause { background:#E65100; color:#fff; }
+  .sp-btn.stop { background:var(--surface2); color:var(--text); border:1px solid rgba(255,255,255,0.15); }
+  .sp-btn:active { transform:scale(0.93); }
+  .sp-btn:disabled { opacity:0.4; cursor:not-allowed; }
+  .sp-speed { font-size:11px; padding:4px 10px; border-radius:12px; border:1px solid rgba(255,255,255,0.2); background:var(--surface2); color:var(--text); cursor:pointer; }
+  .sp-speed.active { background:var(--primary); border-color:var(--primary); }
+  .sp-voice { font-size:11px; padding:4px 8px; border-radius:12px; border:1px solid rgba(255,255,255,0.2); background:var(--surface2); color:var(--text); max-width:120px; cursor:pointer; }
+  .sp-progress { flex:1; min-width:60px; height:3px; background:rgba(255,255,255,0.1); border-radius:3px; overflow:hidden; }
+  .sp-progress-fill { height:100%; background:var(--primary); border-radius:3px; transition:width .3s; width:0; }
+  .sp-blind { font-size:11px; padding:4px 10px; border-radius:12px; border:1px solid rgba(255,255,255,0.2); background:var(--surface2); color:var(--text-muted); cursor:pointer; white-space:nowrap; }
+  .sp-blind.active { background:#C62828; border-color:#C62828; color:#fff; }
+
+  /* ── Sentence highlighting ── */
+  .article-text { position:relative; }
+  .sentence-line {
+    display:inline; cursor:pointer; transition: all .2s;
+    border-radius:3px; padding:1px 2px; margin:0 -1px;
+  }
+  .sentence-line:hover { background:rgba(83,74,183,0.15); }
+  .sentence-line.speaking { background:rgba(83,74,183,0.35); box-shadow:0 0 6px rgba(83,74,183,0.3); border-radius:4px; animation:pulse-highlight .6s ease-in-out infinite alternate; }
+  @keyframes pulse-highlight { from { background:rgba(83,74,183,0.25); } to { background:rgba(83,74,183,0.45); } }
+
+  /* ── Blind mode overlay ── */
+  .article-wrap { position:relative; }
+  .blind-overlay {
+    position:absolute; inset:0; background:var(--surface);
+    border-radius:var(--radius);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    z-index:5; cursor:pointer;
+  }
+  .blind-overlay.hidden { display:none; }
+  .blind-icon { font-size:48px; margin-bottom:8px; }
+  .blind-text { font-size:13px; color:var(--text-muted); }
+  .blind-hint { font-size:11px; color:rgba(255,255,255,0.3); margin-top:4px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="back-btn" onclick="history.back()">←</div>
+  <div class="topbar-info">
+    <div class="topbar-title" id="topTitle">加载中...</div>
+    <div class="topbar-sub" id="topSub">请稍候</div>
+  </div>
+  <div class="topbar-level" id="topLevel"></div>
+</div>
+
+<!-- Stage Pipeline -->
+<div class="stage-pipeline" id="stagePipeline"></div>
+
+<!-- Tab Bar -->
+<div class="tab-bar" id="tabBar">
+  <button class="tab-btn active" data-tab="article" onclick="switchTab('article',this)">📄 文章</button>
+  <button class="tab-btn" data-tab="grammar" onclick="switchTab('grammar',this)">📝 语法</button>
+  <button class="tab-btn" data-tab="vocab" onclick="switchTab('vocab',this)">📖 词汇</button>
+  <button class="tab-btn" data-tab="train" onclick="switchTab('train',this)">🎯 训练</button>
+</div>
+
+<!-- Panels -->
+<div class="panel show" id="panel-article">
+  <!-- Speech Controls -->
+  <div class="speech-bar" id="speechBar">
+    <button class="sp-btn play" id="spPlay" onclick="speechPlay()" title="播放全文">▶</button>
+    <button class="sp-btn pause" id="spPause" onclick="speechPause()" title="暂停" disabled>⏸</button>
+    <button class="sp-btn stop" id="spStop" onclick="speechStop()" title="停止" disabled>⏹</button>
+    <div class="sp-progress"><div class="sp-progress-fill" id="spProgress"></div></div>
+    <button class="sp-speed active" data-rate="1" onclick="setSpeed(1,this)">1x</button>
+    <button class="sp-speed" data-rate="0.75" onclick="setSpeed(0.75,this)">0.75x</button>
+    <button class="sp-speed" data-rate="1.25" onclick="setSpeed(1.25,this)">1.25x</button>
+    <select class="sp-voice" id="spVoice" onchange="selectVoice(this.value)" style="display:none"></select>
+    <button class="sp-blind" id="spBlind" onclick="toggleBlind()">🙈 盲听</button>
+  </div>
+  <div class="text-size-bar">
+    <button class="ts-btn" onclick="changeSize(-1)">A−</button>
+    <span class="ts-label" id="sizeLabel">字号 15px</span>
+    <button class="ts-btn" onclick="changeSize(1)">A+</button>
+  </div>
+  <div class="article-actions">
+    <button class="art-btn" onclick="copyArticle()">📋 复制全文</button>
+    <button class="art-btn primary" onclick="switchTab('train',document.querySelector('[data-tab=train]'))">🎯 开始训练</button>
+  </div>
+  <div class="article-wrap">
+    <div class="blind-overlay hidden" id="blindOverlay" onclick="toggleBlind()">
+      <div class="blind-icon">🙈</div>
+      <div class="blind-text">盲听模式 · 禁止查看原文</div>
+      <div class="blind-hint">点击可临时显示原文</div>
+    </div>
+    <div class="article-text" id="articleText"></div>
+  </div>
+</div>
+
+<div class="panel" id="panel-grammar">
+  <div class="accordion open" id="acc-grammar">
+    <div class="accordion-header" onclick="toggleAccordion('acc-grammar')">
+      <span class="accordion-title">📝 核心语法知识点</span>
+      <span class="accordion-arrow">▼</span>
+    </div>
+    <div class="accordion-body">
+      <ul class="knowledge-list" id="grammarList"></ul>
+    </div>
+  </div>
+  <div class="accordion open" id="acc-listen">
+    <div class="accordion-header" onclick="toggleAccordion('acc-listen')">
+      <span class="accordion-title">🎧 盲听训练重点</span>
+      <span class="accordion-arrow">▼</span>
+    </div>
+    <div class="accordion-body">
+      <ul class="knowledge-list" id="listenList"></ul>
+    </div>
+  </div>
+  <div class="accordion" id="acc-recite">
+    <div class="accordion-header" onclick="toggleAccordion('acc-recite')">
+      <span class="accordion-title">🗣️ 背诵通关要求</span>
+      <span class="accordion-arrow">▼</span>
+    </div>
+    <div class="accordion-body">
+      <p id="reciteGoalText" style="font-size:13px;color:var(--text-muted);line-height:1.7;padding:4px 0"></p>
+    </div>
+  </div>
+</div>
+
+<div class="panel" id="panel-vocab">
+  <div class="accordion open" id="acc-vocab">
+    <div class="accordion-header" onclick="toggleAccordion('acc-vocab')">
+      <span class="accordion-title">📖 核心单词与表达</span>
+      <span class="accordion-arrow">▼</span>
+    </div>
+    <div class="accordion-body">
+      <div class="vocab-list" id="vocabWrap"></div>
+    </div>
+  </div>
+</div>
+
+<div class="panel" id="panel-train">
+  <div id="trainContent"></div>
+</div>
+
+<div class="page-bottom-pad"></div>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+<script>
+// ── Stage Prompts ──
+const STAGE_PROMPTS = {
+  listening: `# ROLE\n听力训练官\n# OBJECTIVE\n培养真实听力能力。\n# PROCESS\n第一轮：盲听。禁止查看原文。\n第二轮：记录关键词。\n第三轮：总结主题。\n第四轮：核对原文。\n# ASSESSMENT\n统计：关键词正确率 / 主题理解率 / 细节理解率\n# NEVER\n不要提前展示原文。不要提前展示翻译。\n用户若问「这个词是什么意思」，请引导用户先结合上下文猜测。`,
+  vocab: `# ROLE\n单词训练官\n# MISSION\n帮助用户掌握单词。\n不是帮助用户知道单词。\n# METHOD\n先猜测 → 再验证 → 再应用 → 最后复习\n# FORBIDDEN\n直接给中文翻译。\n# REQUIRED\n生成：例句 / 同义词 / 反义词 / 替换表达 / 场景使用\n# REVIEW\n按照艾宾浩斯曲线复习：\nDay1 / Day3 / Day7 / Day15 / Day30`,
+  recite: `# ROLE\n背诵训练官\n# OBJECTIVE\n帮助用户实现原速背诵。\n# METHOD\nSentence by Sentence → Paragraph by Paragraph → Article by Article\n# CHECKPOINTS\n第一关：单句复现\n第二关：段落复现\n第三关：全文复现\n第四关：原速复现\n# EVALUATION\n检查：准确度 / 流畅度 / 停顿 / 节奏 / 语调\n# PASS CRITERIA\n准确率 >= 95%  流畅率 >= 90%`,
+  output: `# ROLE\n输出训练官\n# OBJECTIVE\n把输入变成能力。\n# TASKS\n复述 / 演讲 / 写作 / 总结\n# RULES\n优先使用原文表达。\n优先使用原文句型。\n优先使用原文词组。\n# SCORING\n内容完整度 / 表达准确度\n词汇迁移能力 / 句型迁移能力 / 逻辑结构`
+};
+
+const STAGE_KEYS = ['listening','vocab','recite','output'];
+const STAGE_INFO = {
+  listening: { icon:'🎧', label:'听力训练', color:'#185FA5', desc:'盲听原文，禁止查看原文，培养真实听力能力' },
+  vocab:     { icon:'📖', label:'词汇掌握', color:'#2E7D32', desc:'深度掌握核心单词，从「认识」到「能用」' },
+  recite:    { icon:'🗣️', label:'原速背诵', color:'#E65100', desc:'逐句→逐段→全文，达到原速流畅背诵' },
+  output:    { icon:'✍️', label:'输出转化', color:'#880E4F', desc:'复述、改写、演讲，把输入转化为真正的能力' }
+};
+const SCORE_DIMS = {
+  listening: ['关键词正确率','主题理解率','细节理解率'],
+  vocab:     ['单词掌握度','例句应用能力','记忆巩固度'],
+  recite:    ['准确率','流畅率','语调节奏'],
+  output:    ['内容完整度','词汇迁移','句型迁移']
+};
+
+let currentMat = null;
+let currentStageIdx = 0;
+let textSize = 15;
+let savedData = null;
+let savedMat = null;
+
+function getMatId() {
+  const p = new URLSearchParams(location.search);
+  return parseInt(p.get('id')) || 1;
+}
+
+function init() {
+  const id = getMatId();
+  currentMat = MATERIALS_DB.find(m => m.id === id);
+  if (!currentMat) { alert('材料不存在'); history.back(); return; }
+
+  savedData = App.getData();
+  savedMat = (savedData.materials || []).find(m => m.id === id) || { id, stages: {} };
+
+  // Topbar
+  document.getElementById('topTitle').textContent = `第${id}篇 · ${currentMat.title}`;
+  document.getElementById('topSub').textContent = `${currentMat.topic} · ${currentMat.wordCount}个核心词`;
+  const lvBadge = document.getElementById('topLevel');
+  lvBadge.textContent = currentMat.level;
+  lvBadge.style.background = currentMat.levelColor + '22';
+  lvBadge.style.color = currentMat.levelColor;
+
+  // Article - render with clickable sentences
+  renderArticle(currentMat.text);
+
+  // Grammar
+  document.getElementById('grammarList').innerHTML = currentMat.grammar.map(g => `<li>${g}</li>`).join('');
+  document.getElementById('listenList').innerHTML = currentMat.listeningFocus.map(l => `<li>${l}</li>`).join('');
+  document.getElementById('reciteGoalText').textContent = currentMat.reciteGoal;
+
+  // Vocab list with click-to-reveal
+  document.getElementById('vocabWrap').innerHTML = currentMat.vocab.map((v, i) => {
+    const word = typeof v === 'string' ? v : v.word;
+    const meaning = typeof v === 'string' ? '暂无释义' : v.meaning;
+    const pos = (typeof v === 'string' || !v.pos) ? '' : v.pos;
+    const phonetic = typeof v === 'string' ? '' : (v.phonetic || '');
+    return `<div class="vocab-item" onclick="toggleVocab(this)">
+      <div class="vocab-item-inner">
+        <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;">
+          <span class="vocab-word">${word}</span>
+          ${pos ? `<span class="vocab-pos">${pos}</span>` : ''}
+          ${phonetic ? `<span class="vocab-phonetic">${phonetic}</span>` : ''}
+        </div>
+        <span class="vocab-arrow">▼</span>
+      </div>
+      <div class="vocab-meaning">${meaning}</div>
+    </div>`;
+  }).join('');
+
+  // Determine current stage
+  currentStageIdx = STAGE_KEYS.findIndex(s => (savedMat.stages[s]||0) < 60);
+  if (currentStageIdx === -1) currentStageIdx = 4; // all done
+
+  renderPipeline();
+  renderTrainPanel();
+}
+
+function renderPipeline() {
+  const pipe = document.getElementById('stagePipeline');
+  pipe.innerHTML = STAGE_KEYS.map((s, i) => {
+    const score = savedMat.stages[s] || 0;
+    const done = score >= 60;
+    const active = i === currentStageIdx;
+    const locked = i > currentStageIdx;
+    return `
+      ${i > 0 ? '<div class="stage-arrow">→</div>' : ''}
+      <div class="stage-step" onclick="jumpToStage(${i})">
+        <div class="stage-dot ${done?'done':active?'active':locked?'locked':''}">${done?'✓':STAGE_INFO[s].icon}</div>
+        <div class="stage-name ${done?'done':active?'active':''}">${STAGE_INFO[s].label}</div>
+      </div>`;
+  }).join('') + (currentStageIdx === 4 ? '<div class="stage-arrow">→</div><div class="stage-step"><div class="stage-dot done">🏆</div><div class="stage-name done">完成</div></div>' : '');
+}
+
+function jumpToStage(idx) {
+  if (idx > currentStageIdx) return;
+  // Switch to train tab and scroll
+  switchTab('train', document.querySelector('[data-tab=train]'));
+  // highlight target
+  setTimeout(() => {
+    const cards = document.querySelectorAll('.stage-section');
+    if (cards[idx]) cards[idx].scrollIntoView({behavior:'smooth', block:'start'});
+  }, 100);
+}
+
+function renderTrainPanel() {
+  const tc = document.getElementById('trainContent');
+  if (currentStageIdx >= 4) {
+    // All done
+    tc.innerHTML = `<div class="all-done-banner">
+      <div class="done-icon">🏆</div>
+      <h2>本篇已全部通关！</h2>
+      <p>你已完成本篇的听力、词汇、背诵和输出训练。<br>现在可以进入下一篇继续挑战！</p>
+    </div>
+    <button class="next-btn" onclick="gotoNext()">进入下一篇 →</button>`;
+    return;
+  }
+
+  tc.innerHTML = STAGE_KEYS.map((s, i) => {
+    const info = STAGE_INFO[s];
+    const score = savedMat.stages[s] || 0;
+    const done = score >= 60;
+    const active = i === currentStageIdx;
+    const locked = i > currentStageIdx;
+
+    let content = '';
+    if (done) {
+      content = `<div class="pass-badge">
+        <div class="pass-icon">✅</div>
+        <h3>已通过 · 得分 ${score}</h3>
+        <p>本阶段训练已完成，继续下一阶段</p>
+      </div>`;
+    } else if (!locked) {
+      content = `
+        <div class="prompt-card">
+          <div class="prompt-header">
+            <span class="prompt-header-title">🤖 AI Agent Prompt（复制到AI对话框使用）</span>
+            <button class="copy-btn" id="copyBtn-${s}" onclick="copyPrompt('${s}')">复制</button>
+          </div>
+          <div class="prompt-body">${STAGE_PROMPTS[s]}</div>
+        </div>
+        <div class="score-form">
+          <h4>📊 记录本次训练得分（1-100）</h4>
+          ${SCORE_DIMS[s].map((dim, di) => `
+          <div class="score-row">
+            <span class="score-label">${dim}</span>
+            <input type="range" class="score-slider" min="1" max="100" value="70" id="sl-${s}-${di}" oninput="updateSlider('${s}',${di},this.value)">
+            <span class="score-val" id="sv-${s}-${di}">70</span>
+          </div>`).join('')}
+          <button class="score-submit-btn" onclick="submitScore('${s}')">确认得分，进入下一阶段 →</button>
+        </div>`;
+    } else {
+      content = `<div style="text-align:center;color:var(--text-muted);font-size:13px;padding:16px 0">🔒 请先完成上一阶段训练后解锁</div>`;
+    }
+
+    return `<div class="stage-section" id="sec-${s}" style="margin-bottom:16px">
+      <div class="stage-hero" style="border-color:${info.color}33">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+          <span style="font-size:24px">${info.icon}</span>
+          <div>
+            <div class="stage-hero-title">${info.label}</div>
+            <div class="stage-hero-sub">${info.desc}</div>
+          </div>
+          ${done ? `<span style="margin-left:auto;font-size:20px">✅</span>` : active ? `<span style="margin-left:auto;font-size:11px;padding:4px 10px;border-radius:20px;background:${info.color}33;color:${info.color}">当前阶段</span>` : ''}
+        </div>
+        ${!done && !locked ? buildRules(s) : ''}
+      </div>
+      ${content}
+    </div>`;
+  }).join('');
+}
+
+function buildRules(s) {
+  const rules = {
+    listening: ['🚫 不允许查看原文', '📻 先盲听，试着抓关键词', '✅ 对照原文后再进行词汇训练'],
+    vocab:     ['💡 先猜单词含义，再查证', '📝 每个单词造3个例句', '🔄 按艾宾浩斯曲线复习'],
+    recite:    ['🎙️ 单句→段落→全文循序渐进', '⏱️ 目标原速，注意节奏和停顿', '🎯 准确率≥95%，流畅率≥90%'],
+    output:    ['✍️ 优先使用原文表达和句型', '🎤 尝试复述/演讲/写作三种形式', '💯 评估词汇和句型的迁移能力']
+  };
+  return `<ul class="stage-rules">${rules[s].map(r => `<li><span class="rule-icon">${r.split(' ')[0]}</span><span>${r.split(' ').slice(1).join(' ')}</span></li>`).join('')}</ul>`;
+}
+
+function updateSlider(s, di, val) {
+  document.getElementById(`sv-${s}-${di}`).textContent = val;
+}
+
+function submitScore(s) {
+  const dims = SCORE_DIMS[s];
+  let total = 0;
+  dims.forEach((_, di) => {
+    total += parseInt(document.getElementById(`sl-${s}-${di}`).value);
+  });
+  const avg = Math.round(total / dims.length);
+
+  if (!savedMat.stages) savedMat.stages = {};
+  savedMat.stages[s] = avg;
+
+  // Save to app storage
+  const data = App.getData();
+  if (!data.materials) data.materials = [];
+  const idx = data.materials.findIndex(m => m.id === currentMat.id);
+  if (idx >= 0) data.materials[idx] = savedMat;
+  else data.materials.push(savedMat);
+  // Update study days
+  const today = new Date().toDateString();
+  if (!data.lastStudyDay || data.lastStudyDay !== today) {
+    data.studyDays = (data.studyDays || 0) + 1;
+    if (data.lastStudyDay === new Date(Date.now() - 86400000).toDateString()) {
+      data.streak = (data.streak || 0) + 1;
+    } else {
+      data.streak = 1;
+    }
+    data.lastStudyDay = today;
+  }
+  App.saveData(data);
+  savedData = data;
+
+  if (avg >= 60) {
+    currentStageIdx = STAGE_KEYS.findIndex(s2 => (savedMat.stages[s2]||0) < 60);
+    if (currentStageIdx === -1) currentStageIdx = 4;
+  }
+  renderPipeline();
+  renderTrainPanel();
+
+  // Scroll to next section
+  setTimeout(() => {
+    const next = currentStageIdx < 4 ? document.getElementById(`sec-${STAGE_KEYS[currentStageIdx]}`) : null;
+    if (next) next.scrollIntoView({behavior:'smooth', block:'start'});
+  }, 200);
+}
+
+function gotoNext() {
+  const nextId = currentMat.id + 1;
+  if (nextId <= 10) window.location.href = 'train.html?id=' + nextId;
+  else window.location.href = 'progress.html';
+}
+
+function copyPrompt(s) {
+  navigator.clipboard.writeText(STAGE_PROMPTS[s]).then(() => {
+    const btn = document.getElementById('copyBtn-' + s);
+    btn.textContent = '已复制 ✓';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = '复制'; btn.classList.remove('copied'); }, 2000);
+  }).catch(() => {
+    // Fallback
+    const ta = document.createElement('textarea');
+    ta.value = STAGE_PROMPTS[s];
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    const btn = document.getElementById('copyBtn-' + s);
+    btn.textContent = '已复制 ✓';
+    setTimeout(() => { btn.textContent = '复制'; }, 2000);
+  });
+}
+
+function copyArticle() {
+  navigator.clipboard.writeText(currentMat.text).catch(() => {});
+}
+
+function switchTab(tab, el) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('show'));
+  if (el) el.classList.add('active');
+  document.getElementById('panel-' + tab).classList.add('show');
+}
+
+function toggleAccordion(id) {
+  document.getElementById(id).classList.toggle('open');
+}
+
+function changeSize(delta) {
+  textSize = Math.max(12, Math.min(20, textSize + delta));
+  document.getElementById('articleText').style.fontSize = textSize + 'px';
+  document.getElementById('sizeLabel').textContent = '字号 ' + textSize + 'px';
+}
+
+// ── Speech Engine ──
+const synth = window.speechSynthesis;
+let speechUtterance = null;
+let speechRate = 1;
+let speechVoice = null;
+let speechSentences = [];
+let speechCurrentIdx = -1;
+let speechPaused = false;
+let blindMode = false;
+
+function loadVoices() {
+  const voices = synth.getVoices();
+  const enVoices = voices.filter(v => v.lang.startsWith('en'));
+  const sel = document.getElementById('spVoice');
+  if (enVoices.length > 0) {
+    sel.style.display = 'block';
+    sel.innerHTML = enVoices.map(v => `<option value="${v.name}">${v.name} (${v.lang})</option>`).join('');
+    // Prefer a good English voice
+    const pref = enVoices.find(v => v.name.includes('Google') || v.name.includes('Samantha') || v.name.includes('Daniel')) || enVoices[0];
+    sel.value = pref.name;
+    speechVoice = pref;
+  }
+}
+if (synth.getVoices().length > 0) loadVoices();
+else synth.onvoiceschanged = loadVoices;
+
+function selectVoice(name) {
+  const voices = synth.getVoices();
+  speechVoice = voices.find(v => v.name === name) || null;
+}
+
+function setSpeed(rate, el) {
+  speechRate = rate;
+  document.querySelectorAll('.sp-speed').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function renderArticle(text) {
+  // Split into paragraphs, then sentences within each paragraph
+  const paragraphs = text.split(/\n\n+/);
+  speechSentences = [];
+  let html = '';
+
+  paragraphs.forEach((para, pi) => {
+    if (!para.trim()) return;
+    // Split paragraph into sentences (look for .!? followed by space or end)
+    const sentences = para.match(/[^.!?\n]+[.!?]*(\s|$)/g) || [para];
+    sentences.forEach((s, si) => {
+      const trimmed = s.trim();
+      if (!trimmed) return;
+      const idx = speechSentences.length;
+      speechSentences.push(trimmed);
+      html += `<span class="sentence-line" data-sidx="${idx}" onclick="speakSentence(${idx})">${trimmed} </span>`;
+    });
+    // paragraph break
+    if (pi < paragraphs.length - 1) html += '<br><br>';
+  });
+
+  document.getElementById('articleText').innerHTML = html;
+  // Apply current font size
+  document.getElementById('articleText').style.fontSize = textSize + 'px';
+  // Reset blind state
+  blindMode = false;
+  updateBlindUI();
+}
+
+function speakSentence(idx) {
+  synth.cancel();
+  speechCurrentIdx = idx;
+  speechPaused = false;
+  highlightSentence(idx);
+  speakCurrent();
+  updateSpeechBtns();
+}
+
+function speechPlay() {
+  if (speechPaused && speechCurrentIdx >= 0) {
+    // Resume
+    speechPaused = false;
+    synth.resume();
+    updateSpeechBtns();
+    return;
+  }
+  synth.cancel();
+  speechCurrentIdx = 0;
+  speechPaused = false;
+  highlightSentence(0);
+  speakCurrent();
+  updateSpeechBtns();
+}
+
+function speechPause() {
+  speechPaused = true;
+  synth.pause();
+  updateSpeechBtns();
+}
+
+function speechStop() {
+  synth.cancel();
+  speechPaused = false;
+  speechCurrentIdx = -1;
+  clearHighlights();
+  document.getElementById('spProgress').style.width = '0';
+  updateSpeechBtns();
+}
+
+function speakCurrent() {
+  if (speechCurrentIdx < 0 || speechCurrentIdx >= speechSentences.length || speechPaused) return;
+
+  const sentence = speechSentences[speechCurrentIdx];
+  const utter = new SpeechSynthesisUtterance(sentence);
+  utter.rate = speechRate;
+  utter.pitch = 1;
+  utter.volume = 1;
+  if (speechVoice) utter.voice = speechVoice;
+  speechUtterance = utter;
+
+  utter.onend = () => {
+    if (speechPaused) return;
+    // Clear current highlight
+    clearSentenceHighlight(speechCurrentIdx);
+    speechCurrentIdx++;
+    // Update progress bar
+    const pct = Math.round((speechCurrentIdx / speechSentences.length) * 100);
+    document.getElementById('spProgress').style.width = pct + '%';
+
+    if (speechCurrentIdx < speechSentences.length) {
+      highlightSentence(speechCurrentIdx);
+      speakCurrent();
+    } else {
+      // Done
+      speechCurrentIdx = -1;
+      speechPaused = false;
+      document.getElementById('spProgress').style.width = '100%';
+      updateSpeechBtns();
+      // Small delay then reset progress
+      setTimeout(() => { document.getElementById('spProgress').style.width = '0'; }, 1500);
+    }
+  };
+
+  utter.onerror = (e) => {
+    if (e.error === 'canceled' || e.error === 'interrupted') return;
+    speechCurrentIdx = -1;
+    speechPaused = false;
+    updateSpeechBtns();
+  };
+
+  synth.speak(utter);
+}
+
+function highlightSentence(idx) {
+  clearHighlights();
+  const el = document.querySelector(`.sentence-line[data-sidx="${idx}"]`);
+  if (el) {
+    el.classList.add('speaking');
+    el.scrollIntoView({behavior:'smooth', block:'center'});
+  }
+}
+
+function clearSentenceHighlight(idx) {
+  const el = document.querySelector(`.sentence-line[data-sidx="${idx}"]`);
+  if (el) el.classList.remove('speaking');
+}
+
+function clearHighlights() {
+  document.querySelectorAll('.sentence-line.speaking').forEach(el => el.classList.remove('speaking'));
+}
+
+function updateSpeechBtns() {
+  const playBtn = document.getElementById('spPlay');
+  const pauseBtn = document.getElementById('spPause');
+  const stopBtn = document.getElementById('spStop');
+  const isPlaying = speechCurrentIdx >= 0 && !speechPaused;
+  const hasActive = speechCurrentIdx >= 0;
+
+  if (isPlaying) {
+    playBtn.textContent = '⏸';
+    playBtn.className = 'sp-btn pause';
+    playBtn.onclick = speechPause;
+    pauseBtn.disabled = true;
+  } else {
+    playBtn.textContent = '▶';
+    playBtn.className = 'sp-btn play';
+    playBtn.onclick = speechPlay;
+    pauseBtn.disabled = !(speechPaused && hasActive);
+  }
+  stopBtn.disabled = !hasActive;
+}
+
+function toggleBlind() {
+  blindMode = !blindMode;
+  updateBlindUI();
+  // When entering blind mode, auto-play if not already playing
+  if (blindMode && speechCurrentIdx < 0) {
+    speechPlay();
+  }
+}
+
+function updateBlindUI() {
+  const overlay = document.getElementById('blindOverlay');
+  const blindBtn = document.getElementById('spBlind');
+  if (blindMode) {
+    overlay.classList.remove('hidden');
+    blindBtn.classList.add('active');
+    blindBtn.textContent = '👁 显示';
+  } else {
+    overlay.classList.add('hidden');
+    blindBtn.classList.remove('active');
+    blindBtn.textContent = '🙈 盲听';
+  }
+}
+
+function toggleVocab(el) {
+  el.classList.toggle('open');
+}
+
+// Cleanup speech on page leave
+window.addEventListener('beforeunload', () => { synth.cancel(); });
+
+init();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js')
+    .then(r => console.log('SW registered'))
+    .catch(e => console.log('SW error', e));
+}
+</script>
+</body>
+</html>
