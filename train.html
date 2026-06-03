@@ -284,7 +284,7 @@
 <body>
 
 <div class="topbar">
-  <div class="back-btn" onclick="history.back()">←</div>
+  <div class="back-btn" onclick="goBack()">←</div>
   <div class="topbar-info">
     <div class="topbar-title" id="topTitle">加载中...</div>
     <div class="topbar-sub" id="topSub">请稍候</div>
@@ -450,8 +450,8 @@ function init() {
     const meaning = typeof v === 'string' ? '暂无释义' : v.meaning;
     const pos = (typeof v === 'string' || !v.pos) ? '' : v.pos;
     const phonetic = typeof v === 'string' ? '' : (v.phonetic || '');
-    // Escape single quotes for inline onclick
-    const wordEsc = word.replace(/'/g, "\\'");
+    // Escape for inline onclick — handle quotes and HTML special chars
+    const wordEsc = word.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,"\\'").replace(/</g,'&lt;').replace(/>/g,'&gt;');
     return `<div class="vocab-item" id="vi-${i}">
       <div class="vocab-item-inner">
         <div class="vocab-left" onclick="toggleVocab(document.getElementById('vi-${i}'))">
@@ -1164,8 +1164,18 @@ function speakWord(word, idx) {
   synth.speak(utter);
 }
 
-// Cleanup speech on page leave
-window.addEventListener('beforeunload', () => { synth.cancel(); });
+// Cleanup speech on page leave (safe — never block navigation)
+window.addEventListener('beforeunload', () => { try { synth.cancel(); } catch(e) {} });
+
+// Safe back navigation
+function goBack() {
+  try { synth.cancel(); } catch(e) {}
+  if (document.referrer && document.referrer.includes(location.host)) {
+    history.back();
+  } else {
+    location.href = 'index.html';
+  }
+}
 
 init();
 </script>
