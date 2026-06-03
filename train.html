@@ -99,17 +99,28 @@
   .knowledge-list { list-style:none; }
   .knowledge-list li { font-size:12px; color:var(--text-muted); padding:5px 0; border-bottom:1px solid rgba(255,255,255,0.04); line-height:1.6; }
   .knowledge-list li::before { content:'•'; color:var(--primary-light); margin-right:6px; }
-  .vocab-list { display:flex; flex-direction:column; gap:2px; }
-  .vocab-item { background:var(--surface2); border-radius:10px; cursor:pointer; overflow:hidden; transition:all .2s; }
-  .vocab-item:active { background:rgba(83,74,183,0.15); }
-  .vocab-item-inner { display:flex; align-items:center; justify-content:space-between; padding:12px 14px; }
-  .vocab-word { font-size:14px; font-weight:600; color:var(--text); }
-  .vocab-pos { font-size:11px; color:var(--primary-light); background:rgba(83,74,183,0.15); padding:2px 7px; border-radius:4px; margin-left:8px; font-weight:500; white-space:nowrap; }
-  .vocab-phonetic { font-size:11px; color:var(--text-muted); margin-left:8px; }
+  .vocab-list { display:flex; flex-direction:column; gap:4px; }
+  .vocab-item { background:var(--surface2); border-radius:12px; overflow:hidden; transition:all .2s; }
+  .vocab-item-inner { display:flex; align-items:center; justify-content:space-between; padding:11px 14px; gap:8px; }
+  .vocab-left { display:flex; flex-direction:column; gap:3px; flex:1; min-width:0; }
+  .vocab-top-row { display:flex; align-items:center; flex-wrap:wrap; gap:6px; }
+  .vocab-word { font-size:15px; font-weight:700; color:var(--text); }
+  .vocab-pos { font-size:10px; color:var(--primary-light); background:rgba(83,74,183,0.18); padding:2px 7px; border-radius:4px; font-weight:600; white-space:nowrap; }
+  .vocab-phonetic { font-size:12px; color:#9FD4FF; font-style:italic; letter-spacing:0.3px; }
+  .vocab-right { display:flex; align-items:center; gap:6px; flex-shrink:0; }
+  .vocab-speak-btn {
+    width:30px; height:30px; border-radius:50%; border:none;
+    background:rgba(83,74,183,0.25); color:var(--primary-light);
+    font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center;
+    transition:all .2s; flex-shrink:0;
+  }
+  .vocab-speak-btn:active { transform:scale(0.9); background:var(--primary); color:#fff; }
+  .vocab-speak-btn.speaking { background:var(--primary); color:#fff; animation:speakPulse .6s ease-in-out infinite alternate; }
+  @keyframes speakPulse { from { opacity:0.7; } to { opacity:1; transform:scale(1.05); } }
   .vocab-arrow { font-size:10px; color:var(--text-muted); transition:transform .25s; }
   .vocab-item.open .vocab-arrow { transform:rotate(180deg); }
-  .vocab-meaning { max-height:0; overflow:hidden; transition:max-height .3s ease, padding .3s ease; padding:0 14px; font-size:13px; color:var(--primary-light); line-height:1.6; }
-  .vocab-item.open .vocab-meaning { max-height:200px; padding:0 14px 12px; }
+  .vocab-meaning { max-height:0; overflow:hidden; transition:max-height .3s ease, padding .3s ease; padding:0 14px; font-size:13px; color:#B0B8CC; line-height:1.7; }
+  .vocab-item.open .vocab-meaning { max-height:200px; padding:4px 14px 13px; }
 
   /* ── Training Stage Panel ── */
   .stage-panel { }
@@ -433,20 +444,27 @@ function init() {
   document.getElementById('listenList').innerHTML = currentMat.listeningFocus.map(l => `<li>${l}</li>`).join('');
   document.getElementById('reciteGoalText').textContent = currentMat.reciteGoal;
 
-  // Vocab list with click-to-reveal
+  // Vocab list with click-to-reveal and TTS play
   document.getElementById('vocabWrap').innerHTML = currentMat.vocab.map((v, i) => {
     const word = typeof v === 'string' ? v : v.word;
     const meaning = typeof v === 'string' ? '暂无释义' : v.meaning;
     const pos = (typeof v === 'string' || !v.pos) ? '' : v.pos;
     const phonetic = typeof v === 'string' ? '' : (v.phonetic || '');
-    return `<div class="vocab-item" onclick="toggleVocab(this)">
+    // Escape single quotes for inline onclick
+    const wordEsc = word.replace(/'/g, "\\'");
+    return `<div class="vocab-item" id="vi-${i}">
       <div class="vocab-item-inner">
-        <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;">
-          <span class="vocab-word">${word}</span>
-          ${pos ? `<span class="vocab-pos">${pos}</span>` : ''}
-          ${phonetic ? `<span class="vocab-phonetic">${phonetic}</span>` : ''}
+        <div class="vocab-left" onclick="toggleVocab(document.getElementById('vi-${i}'))">
+          <div class="vocab-top-row">
+            <span class="vocab-word">${word}</span>
+            ${pos ? `<span class="vocab-pos">${pos}</span>` : ''}
+          </div>
+          ${phonetic ? `<div class="vocab-phonetic">${phonetic}</div>` : ''}
         </div>
-        <span class="vocab-arrow">▼</span>
+        <div class="vocab-right">
+          <button class="vocab-speak-btn" id="vsb-${i}" onclick="speakWord('${wordEsc}',${i})" title="播放读音">🔊</button>
+          <span class="vocab-arrow" onclick="toggleVocab(document.getElementById('vi-${i}'))">▼</span>
+        </div>
       </div>
       <div class="vocab-meaning">${meaning}</div>
     </div>`;
@@ -1109,6 +1127,41 @@ function updateBlindUI() {
 
 function toggleVocab(el) {
   el.classList.toggle('open');
+}
+
+/* ── Speak a single vocabulary word ── */
+let vocabSpeakTimer = null;
+function speakWord(word, idx) {
+  // Cancel any ongoing article speech
+  synth.cancel();
+  speechCurrentIdx = -1;
+  speechPaused = false;
+  updateSpeechBtns();
+
+  const btn = document.getElementById('vsb-' + idx);
+  if (!btn) return;
+
+  // Visual feedback
+  btn.classList.add('speaking');
+  btn.textContent = '🔊';
+
+  const utter = new SpeechSynthesisUtterance(word);
+  utter.rate = 0.85;       // slightly slower for clarity
+  utter.pitch = 1;
+  utter.volume = 1;
+  utter.lang = 'en-GB';
+  if (speechVoice) { utter.voice = speechVoice; utter.lang = speechVoice.lang; }
+
+  utter.onend = () => {
+    btn.classList.remove('speaking');
+    btn.textContent = '🔊';
+  };
+  utter.onerror = () => {
+    btn.classList.remove('speaking');
+    btn.textContent = '🔊';
+  };
+
+  synth.speak(utter);
 }
 
 // Cleanup speech on page leave
